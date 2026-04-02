@@ -1,10 +1,13 @@
 [phases.setup]
-nixPkgs = ["python311"]
+nixPkgs = ["python311", "gcc"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
 
 [start]
 cmd = "gunicorn app:app --config gunicorn.conf.py"
 ```
 
-And in `runtime.txt` replace everything with just this:
+## Update `runtime.txt` — replace with this:
 ```
-python-3.11.0
+python-3.11
