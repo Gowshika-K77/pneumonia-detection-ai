@@ -29,16 +29,23 @@ async function uploadData() {
 
     button.disabled = true;
     result.style.color = "black";
-    result.innerText = "Analyzing... Please wait";
+    result.innerText = "Analyzing... Please wait (this may take up to 2 minutes)";
 
     const formData = new FormData();
     formData.append("file", file);
 
+    // Set 3 minute timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180000);
+
     try {
         const response = await fetch("/predict", {
             method: "POST",
-            body: formData
+            body: formData,
+            signal: controller.signal
         });
+
+        clearTimeout(timeout);
         const data = await response.json();
 
         if (data.result === "PNEUMONIA") {
@@ -51,9 +58,15 @@ async function uploadData() {
             result.style.color = "red";
             result.innerText = "Error: " + (data.error || "Unexpected response");
         }
+
     } catch (error) {
+        clearTimeout(timeout);
         result.style.color = "red";
-        result.innerText = "Server connection error!";
+        if (error.name === "AbortError") {
+            result.innerText = "Request timed out. Server is too slow. Please try again.";
+        } else {
+            result.innerText = "Server connection error!";
+        }
     }
 
     button.disabled = false;
