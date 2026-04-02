@@ -10,16 +10,21 @@ app = Flask(__name__)
 model_path = "model/pneumonia_cnn_model.h5"
 if not os.path.exists(model_path):
     os.makedirs("model", exist_ok=True)
-    url = "https://drive.google.com/uc?export=download&id=1rG2jDLrmFkFwSIqk-JsVdCp_0VhIMp6S&confirm=t"
-    import urllib.request
-    urllib.request.urlretrieve(url, model_path)
+    print("Downloading model... please wait")
+    gdown.download(
+        id="1rG2jDLrmFkFwSIqk-JsVdCp_0VhIMp6S",
+        output=model_path,
+        quiet=False,
+        fuzzy=True
+    )
+    print("Download complete!")
+
 # Load model
 from manual_model import create_model
 model = create_model()
 model.load_weights(model_path)
 
 def preprocess_image(image):
-    # Convert to RGB in case it's grayscale or RGBA
     image = image.convert("RGB")
     image = image.resize((224, 224))
     image = np.array(image) / 255.0
@@ -38,30 +43,25 @@ def upload_page():
 def predict():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
-
     file = request.files['file']
-
     try:
         image = Image.open(file)
         processed = preprocess_image(image)
         prediction = model.predict(processed)
-
         confidence = float(prediction[0][0])
-
         if confidence > 0.5:
             result = "PNEUMONIA"
             display_confidence = confidence
         else:
             result = "NORMAL"
             display_confidence = 1 - confidence
-
         return jsonify({
             'result': result,
             'confidence': round(display_confidence * 100, 2)
         })
-
     except Exception as e:
         return jsonify({'error': str(e)})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False)
